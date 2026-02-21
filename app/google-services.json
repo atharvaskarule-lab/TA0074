@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "733129303637",
+    "project_id": "shramikconnect-b05b0",
+    "storage_bucket": "shramikconnect-b05b0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:733129303637:android:550f1bf139ccf3110e96dc",
+        "android_client_info": {
+          "package_name": "com.example.shramikconnect"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBoOFlpqWIThvC8oIrnXkdKOkgLodwaFEM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
