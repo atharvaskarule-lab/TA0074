@@ -2,6 +2,7 @@ package com.example.shramikconnect;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -10,15 +11,21 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
+import java.util.Objects;
+
 public class SignupActivity extends AppCompatActivity {
+
+    private static final String TAG = "SignupActivity";
 
     TextInputEditText etName, etPhone, etPassword;
     RadioGroup roleGroup;
     Button btnRegister;
 
+    FirebaseAuth mAuth;
     DatabaseReference databaseReference;
 
     @Override
@@ -26,19 +33,22 @@ public class SignupActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_signup);
 
+        mAuth = FirebaseAuth.getInstance();
+        databaseReference = FirebaseDatabase.getInstance().getReference("Users");
+
         etName = findViewById(R.id.etName);
         etPhone = findViewById(R.id.etPhone);
         etPassword = findViewById(R.id.etPassword);
         roleGroup = findViewById(R.id.roleGroup);
         btnRegister = findViewById(R.id.btnRegister);
 
-        databaseReference = FirebaseDatabase.getInstance().getReference("Users");
-
-        btnRegister.setOnClickListener(v -> registerUser());
+        btnRegister.setOnClickListener(v -> {
+            Log.d(TAG, "Register button clicked");
+            registerUser();
+        });
     }
 
     private void registerUser() {
-
         String name = etName.getText().toString().trim();
         String phone = etPhone.getText().toString().trim();
         String password = etPassword.getText().toString().trim();
@@ -67,46 +77,61 @@ public class SignupActivity extends AppCompatActivity {
         }
 
         RadioButton selectedRole = findViewById(selectedRoleId);
-        String role = selectedRole.getText().toString().trim();
+        String roleText = selectedRole.getText().toString().trim();
+        
+        final String role = roleText.contains("Worker") ? "Worker" : "Customer";
 
-        btnRegister.setEnabled(false); // prevent double click
+        btnRegister.setEnabled(false);
+        Log.d(TAG, "Creating Firebase Auth user for: " + phone);
 
-        String userId = databaseReference.push().getKey();
+        // Firebase Auth requires an email. We'll use a fake email based on the phone number.
+        String fakeEmail = phone + "@shramik.com";
 
-        if (userId == null) {
-            Toast.makeText(this, "Something went wrong. Try again.", Toast.LENGTH_SHORT).show();
-            btnRegister.setEnabled(true);
-            return;
-        }
+        mAuth.createUserWithEmailAndPassword(fakeEmail, password)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        // Registration success, update UI with the signed-in user's information
+                        Log.d(TAG, "createUserWithEmail:success");
+                        String userId = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
+                        
+                        saveUserToDatabase(userId, name, phone, role, password);
+                    } else {
+                        // If sign in fails, display a message to the user.
+                        Log.w(TAG, "createUserWithEmail:failure", task.getException());
+                        Toast.makeText(SignupActivity.this, "Authentication failed: " + 
+                                Objects.requireNonNull(task.getException()).getMessage(),
+                                Toast.LENGTH_SHORT).show();
+                        btnRegister.setEnabled(true);
+                    }
+                });
+    }
 
+    private void saveUserToDatabase(String userId, String name, String phone, String role, String password) {
         User user = new User(name, phone, role, password);
 
         databaseReference.child(userId).setValue(user)
                 .addOnCompleteListener(task -> {
-
                     btnRegister.setEnabled(true);
-
                     if (task.isSuccessful()) {
-
-                        Toast.makeText(this, "Registration Successful!", Toast.LENGTH_SHORT).show();
+                        Log.d(TAG, "User data saved successfully in Realtime Database");
+                        Toast.makeText(SignupActivity.this, "Registration Successful!", Toast.LENGTH_SHORT).show();
 
                         // 🔥 REDIRECTION LOGIC
-                        if (role.equalsIgnoreCase("Worker")) {
-                            Intent intent = new Intent(SignupActivity.this, WorkerDashboardActivity.class);
-                            intent.putExtra("name", name);
-                            startActivity(intent);
+                        Intent intent;
+                        if ("Worker".equals(role)) {
+                            intent = new Intent(SignupActivity.this, WorkerHomeActivity.class);
                         } else {
-                            Intent intent = new Intent(SignupActivity.this, CustomerDashboardActivity.class);
-                            intent.putExtra("name", name);
-                            startActivity(intent);
+                            intent = new Intent(SignupActivity.this, CustomerHomeActivity.class);
                         }
-
+                        intent.putExtra("name", name);
+                        intent.putExtra("phone", phone);
+                        startActivity(intent);
                         finish();
 
                     } else {
-                        Toast.makeText(this,
-                                "Failed: " + task.getException().getMessage(),
-                                Toast.LENGTH_LONG).show();
+                        String error = task.getException() != null ? task.getException().getMessage() : "Unknown error";
+                        Log.e(TAG, "Database save failed: " + error);
+                        Toast.makeText(SignupActivity.this, "Failed to save user data: " + error, Toast.LENGTH_LONG).show();
                     }
                 });
     }
