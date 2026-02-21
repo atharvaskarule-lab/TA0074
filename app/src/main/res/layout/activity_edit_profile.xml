@@ -7,6 +7,15 @@
     android:padding="16dp"
     tools:context=".EditProfileActivity">
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Edit Profile"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_gravity="center"
+        android:layout_marginBottom="24dp"/>
+
     <EditText
         android:id="@+id/etName"
         android:layout_width="match_parent"
@@ -17,13 +26,35 @@
         android:id="@+id/etPhone"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Phone" />
+        android:hint="Phone"
+        android:inputType="phone" />
+
+    <!-- Role Section (Only for Workers) -->
+    <LinearLayout
+        android:id="@+id/workerRoleLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="16dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Select Your Profession:"/>
+
+        <Spinner
+            android:id="@+id/spinnerProfession"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"/>
+    </LinearLayout>
 
     <Button
         android:id="@+id/btnSave"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:text="Save" />
+        android:layout_marginTop="24dp"
+        android:text="Save Changes" />
 
 </LinearLayout>

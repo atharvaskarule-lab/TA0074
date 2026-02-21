@@ -1,9 +1,16 @@
 package com.example.shramikconnect;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.Context;
+import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.*;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.*;
@@ -13,6 +20,7 @@ import java.util.HashMap;
 
 public class CustomerHomeActivity extends AppCompatActivity {
 
+    private static final String TAG = "CustomerHomeActivity";
     Spinner spinnerSkills;
     Button btnSearch;
     ListView listWorkers;
@@ -20,10 +28,10 @@ public class CustomerHomeActivity extends AppCompatActivity {
     ArrayList<String> workerList;
     ArrayAdapter<String> adapter;
 
-    DatabaseReference usersRef, jobsRef;
+    DatabaseReference usersRef, jobsRef, notificationsRef;
     String customerId;
 
-    String[] skills = {"Electrician", "Plumber", "Painter", "Carpenter"};
+    String[] skills = {"Electrician", "Mistri", "Carpenter", "Painter", "Plumber", "Labour", "Other"};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,8 +44,12 @@ public class CustomerHomeActivity extends AppCompatActivity {
 
         usersRef = FirebaseDatabase.getInstance().getReference("Users");
         jobsRef = FirebaseDatabase.getInstance().getReference("Jobs");
+        notificationsRef = FirebaseDatabase.getInstance().getReference("Notifications");
 
-        customerId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+            customerId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            listenForNotifications();
+        }
 
         workerList = new ArrayList<>();
         adapter = new ArrayAdapter<>(this,
@@ -55,89 +67,99 @@ public class CustomerHomeActivity extends AppCompatActivity {
         btnSearch.setOnClickListener(v -> searchWorkers());
 
         listWorkers.setOnItemClickListener((parent, view, position, id) -> {
-
             String data = workerList.get(position);
-            String workerId = data.split("::")[0];
-
-            showBookingDialog(workerId);
+            try {
+                String workerId = data.split(" :: ")[0];
+                showBookingDialog(workerId);
+            } catch (Exception e) {
+                Log.e(TAG, "Error parsing worker item data", e);
+            }
         });
     }
 
-    private void searchWorkers() {
+    private void listenForNotifications() {
+        notificationsRef.orderByChild("to").equalTo(customerId)
+            .addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                for (DataSnapshot ds : snapshot.getChildren()) {
+                    Boolean read = ds.child("read").getValue(Boolean.class);
+                    if (read != null && !read) {
+                        String title = ds.child("title").getValue(String.class);
+                        String message = ds.child("message").getValue(String.class);
+                        showLocalNotification(title, message);
 
-        String selectedSkill = spinnerSkills.getSelectedItem().toString();
-
-        usersRef.addListenerForSingleValueEvent(
-                new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-
-                        workerList.clear();
-
-                        for(DataSnapshot ds : snapshot.getChildren()) {
-
-                            String role = ds.child("role")
-                                    .getValue(String.class);
-
-                            String availability = ds.child("availability")
-                                    .getValue(String.class);
-
-                            String skill = ds.child("skill")
-                                    .getValue(String.class);
-
-                            if("Worker".equals(role) &&
-                                    "Available".equals(availability) &&
-                                    selectedSkill.equals(skill)) {
-
-                                String workerId = ds.getKey();
-                                String name = ds.child("name")
-                                        .getValue(String.class);
-
-                                workerList.add(workerId + ":: " + name);
-                            }
-                        }
-
-                        adapter.notifyDataSetChanged();
+                        // Mark as read
+                        ds.getRef().child("read").setValue(true);
                     }
+                }
+            }
 
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {}
-                });
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
+    }
+
+    private void showLocalNotification(String title, String message) {
+        String channelId = "customer_channel";
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(channelId, "Customer Notifications", NotificationManager.IMPORTANCE_HIGH);
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            manager.createNotificationChannel(channel);
+        }
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, channelId)
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setPriority(NotificationCompat.PRIORITY_HIGH);
+
+        NotificationManagerCompat.from(this).notify((int) System.currentTimeMillis(), builder.build());
+    }
+
+    private void searchWorkers() {
+        String selectedSkill = spinnerSkills.getSelectedItem().toString();
+        usersRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                workerList.clear();
+                for(DataSnapshot ds : snapshot.getChildren()) {
+                    if ("Worker".equals(ds.child("role").getValue(String.class)) && 
+                        selectedSkill.equalsIgnoreCase(ds.child("profession").getValue(String.class))) {
+                            String workerId = ds.getKey();
+                            String name = ds.child("name").getValue(String.class);
+                            workerList.add(workerId + " :: " + name);
+                    }
+                }
+                adapter.notifyDataSetChanged();
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
     }
 
     private void showBookingDialog(String workerId) {
-
         final EditText input = new EditText(this);
-        input.setHint("Enter Amount");
+        input.setHint("Enter Booking Amount");
+        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
 
         new android.app.AlertDialog.Builder(this)
                 .setTitle("Book Worker")
                 .setView(input)
                 .setPositiveButton("Confirm", (dialog, which) -> {
-
                     String amountStr = input.getText().toString();
-
                     if(!amountStr.isEmpty()) {
-
-                        int amount = Integer.parseInt(amountStr);
-
                         String jobId = jobsRef.push().getKey();
-
-                        HashMap<String, Object> jobMap =
-                                new HashMap<>();
-
+                        if (jobId == null) return;
+                        HashMap<String, Object> jobMap = new HashMap<>();
                         jobMap.put("workerId", workerId);
                         jobMap.put("customerId", customerId);
-                        jobMap.put("skill",
-                                spinnerSkills.getSelectedItem().toString());
-                        jobMap.put("amount", amount);
+                        jobMap.put("skill", spinnerSkills.getSelectedItem().toString());
+                        jobMap.put("amount", amountStr);
                         jobMap.put("status", "pending");
-
+                        jobMap.put("timestamp", ServerValue.TIMESTAMP);
                         jobsRef.child(jobId).setValue(jobMap);
-
-                        Toast.makeText(this,
-                                "Job Requested Successfully",
-                                Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Job Requested Successfully", Toast.LENGTH_SHORT).show();
                     }
                 })
                 .setNegativeButton("Cancel", null)

@@ -2,15 +2,18 @@ package com.example.shramikconnect;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.*;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.*;
 
 public class WorkerHomeActivity extends AppCompatActivity {
 
+    private static final String TAG = "WorkerHomeActivity";
     TextView tvWelcome, tvRating, tvEarnings;
     Switch switchAvailability;
     Button btnViewJobs, btnEditProfile, btnLogout;
@@ -33,7 +36,17 @@ public class WorkerHomeActivity extends AppCompatActivity {
         btnLogout = findViewById(R.id.btnLogout);
 
         mAuth = FirebaseAuth.getInstance();
-        userId = mAuth.getCurrentUser().getUid();
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+
+        // 1. Session Check
+        if (currentUser == null) {
+            Log.e(TAG, "No user logged in. Redirecting to Login.");
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
+            return;
+        }
+
+        userId = currentUser.getUid();
         databaseReference = FirebaseDatabase.getInstance().getReference("Users").child(userId);
 
         loadWorkerData();
@@ -45,7 +58,9 @@ public class WorkerHomeActivity extends AppCompatActivity {
 
         btnLogout.setOnClickListener(v -> {
             mAuth.signOut();
-            startActivity(new Intent(this, LoginActivity.class));
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
             finish();
         });
 
@@ -57,27 +72,42 @@ public class WorkerHomeActivity extends AppCompatActivity {
     }
 
     private void loadWorkerData() {
-
-        databaseReference.addListenerForSingleValueEvent(new ValueEventListener() {
+        databaseReference.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    // 2. Safe Data Retrieval with Default Values
+                    String name = snapshot.child("name").getValue(String.class);
+                    if (name == null) name = "Worker";
 
-                String name = snapshot.child("name").getValue(String.class);
-                String rating = String.valueOf(snapshot.child("rating").getValue());
-                String earnings = String.valueOf(snapshot.child("earnings").getValue());
-                String availability = snapshot.child("availability").getValue(String.class);
+                    Object ratingObj = snapshot.child("rating").getValue();
+                    String rating = (ratingObj != null) ? String.valueOf(ratingObj) : "0.0";
 
-                tvWelcome.setText("Welcome, " + name);
-                tvRating.setText("Rating: " + rating + " ⭐");
-                tvEarnings.setText("Total Earnings: ₹" + earnings);
+                    Object earningsObj = snapshot.child("earnings").getValue();
+                    String earnings = (earningsObj != null) ? String.valueOf(earningsObj) : "0";
 
-                switchAvailability.setChecked("Available".equals(availability));
+                    String availability = snapshot.child("availability").getValue(String.class);
+                    if (availability == null) availability = "Not Available";
+
+                    tvWelcome.setText("Welcome, " + name);
+                    tvRating.setText("Rating: " + rating + " ⭐");
+                    tvEarnings.setText("Total Earnings: ₹" + earnings);
+
+                    // Prevent triggering the listener when setting initial state
+                    switchAvailability.setOnCheckedChangeListener(null);
+                    switchAvailability.setChecked("Available".equalsIgnoreCase(availability));
+                    
+                    // Re-attach listener
+                    switchAvailability.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                        String status = isChecked ? "Available" : "Not Available";
+                        databaseReference.child("availability").setValue(status);
+                    });
+                }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(WorkerHomeActivity.this,
-                        "Failed to load data", Toast.LENGTH_SHORT).show();
+                Log.e(TAG, "Database error: " + error.getMessage());
             }
         });
     }
