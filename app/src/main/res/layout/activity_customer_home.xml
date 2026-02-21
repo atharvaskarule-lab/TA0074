@@ -7,19 +7,39 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <TextView
-        android:text="Find Skilled Workers"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:textColor="#1E3A8A"
-        android:layout_marginBottom="12dp"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Find Skilled Workers"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="#1E3A8A"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"/>
+
+        <Button
+            android:id="@+id/btnViewMyJobs"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="My Jobs"
+            android:textSize="12sp"
+            android:layout_alignParentEnd="true"
+            android:backgroundTint="#1E3A8A"
+            style="@style/Widget.MaterialComponents.Button.TextButton"/>
+
+    </RelativeLayout>
 
     <Spinner
         android:id="@+id/spinnerSkills"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:padding="10dp"
+        android:background="@android:drawable/btn_dropdown"/>
 
     <Button
         android:id="@+id/btnSearch"
@@ -30,10 +50,19 @@
         android:layout_width="match_parent"
         android:layout_height="50dp"/>
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Available Workers:"
+        android:layout_marginTop="20dp"
+        android:textStyle="bold"/>
+
     <ListView
         android:id="@+id/listWorkers"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="8dp"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent"
+        android:divider="#D1D5DB"
+        android:dividerHeight="1dp"/>
 
 </LinearLayout>

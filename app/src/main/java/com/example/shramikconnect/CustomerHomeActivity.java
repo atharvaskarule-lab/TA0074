@@ -3,6 +3,7 @@ package com.example.shramikconnect;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -22,7 +23,7 @@ public class CustomerHomeActivity extends AppCompatActivity {
 
     private static final String TAG = "CustomerHomeActivity";
     Spinner spinnerSkills;
-    Button btnSearch;
+    Button btnSearch, btnViewMyJobs;
     ListView listWorkers;
 
     ArrayList<String> workerList;
@@ -40,6 +41,7 @@ public class CustomerHomeActivity extends AppCompatActivity {
 
         spinnerSkills = findViewById(R.id.spinnerSkills);
         btnSearch = findViewById(R.id.btnSearch);
+        btnViewMyJobs = findViewById(R.id.btnViewMyJobs);
         listWorkers = findViewById(R.id.listWorkers);
 
         usersRef = FirebaseDatabase.getInstance().getReference("Users");
@@ -65,6 +67,10 @@ public class CustomerHomeActivity extends AppCompatActivity {
         spinnerSkills.setAdapter(skillAdapter);
 
         btnSearch.setOnClickListener(v -> searchWorkers());
+        
+        btnViewMyJobs.setOnClickListener(v -> {
+            startActivity(new Intent(CustomerHomeActivity.this, CustomerJobsActivity.class));
+        });
 
         listWorkers.setOnItemClickListener((parent, view, position, id) -> {
             String data = workerList.get(position);
