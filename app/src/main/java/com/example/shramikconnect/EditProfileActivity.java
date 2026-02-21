@@ -1,37 +1,40 @@
 package com.example.shramikconnect;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.view.View;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.Spinner;
-import android.widget.Toast;
-
+import android.widget.*;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.bumptech.glide.Glide;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.database.*;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 
 import java.util.Arrays;
-import java.util.List;
 
 public class EditProfileActivity extends AppCompatActivity {
 
-    EditText etName, etPhone;
+    private static final int PICK_IMAGE_REQUEST = 1;
+    
+    EditText etName, etPhone, etEmail, etAddress;
     Button btnSave;
     Spinner spinnerProfession;
     LinearLayout workerRoleLayout;
+    ImageView ivEditProfilePic;
+    FloatingActionButton fabChangePhoto;
 
     FirebaseAuth mAuth;
     DatabaseReference databaseReference;
+    StorageReference storageReference;
     String userId;
+    Uri imageUri;
 
     String[] professions = {"Electrician", "Mistri", "Carpenter", "Painter", "Plumber", "Labour", "Other"};
 
@@ -42,9 +45,13 @@ public class EditProfileActivity extends AppCompatActivity {
 
         etName = findViewById(R.id.etName);
         etPhone = findViewById(R.id.etPhone);
+        etEmail = findViewById(R.id.etEmail);
+        etAddress = findViewById(R.id.etAddress);
         btnSave = findViewById(R.id.btnSave);
         spinnerProfession = findViewById(R.id.spinnerProfession);
         workerRoleLayout = findViewById(R.id.workerRoleLayout);
+        ivEditProfilePic = findViewById(R.id.ivEditProfilePic);
+        fabChangePhoto = findViewById(R.id.fabChangePhoto);
 
         mAuth = FirebaseAuth.getInstance();
         if (mAuth.getCurrentUser() == null) {
@@ -53,6 +60,7 @@ public class EditProfileActivity extends AppCompatActivity {
         }
         userId = mAuth.getCurrentUser().getUid();
         databaseReference = FirebaseDatabase.getInstance().getReference("Users").child(userId);
+        storageReference = FirebaseStorage.getInstance().getReference("ProfilePictures");
 
         // Setup Spinner
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, professions);
@@ -61,7 +69,22 @@ public class EditProfileActivity extends AppCompatActivity {
 
         loadProfileData();
 
+        fabChangePhoto.setOnClickListener(v -> openGallery());
         btnSave.setOnClickListener(v -> saveProfileData());
+    }
+
+    private void openGallery() {
+        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        startActivityForResult(intent, PICK_IMAGE_REQUEST);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            imageUri = data.getData();
+            ivEditProfilePic.setImageURI(imageUri);
+        }
     }
 
     private void loadProfileData() {
@@ -71,13 +94,21 @@ public class EditProfileActivity extends AppCompatActivity {
                 if (snapshot.exists()) {
                     String name = snapshot.child("name").getValue(String.class);
                     String phone = snapshot.child("phone").getValue(String.class);
+                    String email = snapshot.child("email").getValue(String.class);
+                    String address = snapshot.child("address").getValue(String.class);
                     String role = snapshot.child("role").getValue(String.class);
                     String profession = snapshot.child("profession").getValue(String.class);
+                    String imageUrl = snapshot.child("profileImageUrl").getValue(String.class);
 
                     etName.setText(name);
                     etPhone.setText(phone);
+                    etEmail.setText(email);
+                    etAddress.setText(address);
 
-                    // If user is a worker, show profession selection
+                    if (imageUrl != null && !imageUrl.isEmpty()) {
+                        Glide.with(EditProfileActivity.this).load(imageUrl).into(ivEditProfilePic);
+                    }
+
                     if ("Worker".equals(role)) {
                         workerRoleLayout.setVisibility(View.VISIBLE);
                         if (profession != null) {
@@ -86,35 +117,57 @@ public class EditProfileActivity extends AppCompatActivity {
                                 spinnerProfession.setSelection(spinnerPosition);
                             }
                         }
-                    } else {
-                        workerRoleLayout.setVisibility(View.GONE);
                     }
                 }
             }
 
             @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(EditProfileActivity.this, "Failed to load profile data", Toast.LENGTH_SHORT).show();
-            }
+            public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
 
     private void saveProfileData() {
         String name = etName.getText().toString().trim();
-        String phone = etPhone.getText().toString().trim();
+        String email = etEmail.getText().toString().trim();
+        String address = etAddress.getText().toString().trim();
 
-        if (name.isEmpty() || phone.isEmpty()) {
-            Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show();
+        if (name.isEmpty() || address.isEmpty()) {
+            Toast.makeText(this, "Name and Address are required", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        databaseReference.child("name").setValue(name);
-        databaseReference.child("phone").setValue(phone);
+        btnSave.setEnabled(false);
+        btnSave.setText("Saving...");
 
-        // Save profession if it's a worker
+        if (imageUri != null) {
+            uploadImageAndSaveData(name, email, address);
+        } else {
+            updateDatabase(name, email, address, null);
+        }
+    }
+
+    private void uploadImageAndSaveData(String name, String email, String address) {
+        StorageReference fileRef = storageReference.child(userId + ".jpg");
+        fileRef.putFile(imageUri).addOnSuccessListener(taskSnapshot -> fileRef.getDownloadUrl().addOnSuccessListener(uri -> {
+            updateDatabase(name, email, address, uri.toString());
+        })).addOnFailureListener(e -> {
+            btnSave.setEnabled(true);
+            btnSave.setText("Save Profile");
+            Toast.makeText(EditProfileActivity.this, "Image Upload Failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    private void updateDatabase(String name, String email, String address, String imageUrl) {
+        databaseReference.child("name").setValue(name);
+        databaseReference.child("email").setValue(email);
+        databaseReference.child("address").setValue(address);
+
+        if (imageUrl != null) {
+            databaseReference.child("profileImageUrl").setValue(imageUrl);
+        }
+
         if (workerRoleLayout.getVisibility() == View.VISIBLE) {
-            String selectedProfession = spinnerProfession.getSelectedItem().toString();
-            databaseReference.child("profession").setValue(selectedProfession);
+            databaseReference.child("profession").setValue(spinnerProfession.getSelectedItem().toString());
         }
 
         Toast.makeText(this, "Profile updated successfully", Toast.LENGTH_SHORT).show();

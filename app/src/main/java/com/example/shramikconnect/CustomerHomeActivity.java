@@ -26,8 +26,8 @@ public class CustomerHomeActivity extends AppCompatActivity {
     Button btnSearch, btnViewMyJobs;
     ListView listWorkers;
 
-    ArrayList<User> workerList;
-    WorkerAdapter adapter;
+    ArrayList<String> workerList;
+    ArrayAdapter<String> adapter;
 
     DatabaseReference usersRef, jobsRef, notificationsRef;
     String customerId;
@@ -54,7 +54,8 @@ public class CustomerHomeActivity extends AppCompatActivity {
         }
 
         workerList = new ArrayList<>();
-        adapter = new WorkerAdapter(this, workerList);
+        adapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_list_item_1, workerList);
 
         listWorkers.setAdapter(adapter);
 
@@ -72,8 +73,13 @@ public class CustomerHomeActivity extends AppCompatActivity {
         });
 
         listWorkers.setOnItemClickListener((parent, view, position, id) -> {
-            User worker = workerList.get(position);
-            showBookingDialog(worker.uid);
+            String data = workerList.get(position);
+            try {
+                String workerId = data.split(" :: ")[0];
+                showBookingDialog(workerId);
+            } catch (Exception e) {
+                Log.e(TAG, "Error parsing worker item data", e);
+            }
         });
     }
 
@@ -128,10 +134,7 @@ public class CustomerHomeActivity extends AppCompatActivity {
                         selectedSkill.equalsIgnoreCase(ds.child("profession").getValue(String.class))) {
                             String workerId = ds.getKey();
                             String name = ds.child("name").getValue(String.class);
-                            String phone = ds.child("phone").getValue(String.class);
-                            String role = ds.child("role").getValue(String.class);
-
-                            workerList.add(new User(workerId, name, phone, role));
+                            workerList.add(workerId + " :: " + name);
                     }
                 }
                 adapter.notifyDataSetChanged();

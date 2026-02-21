@@ -48,6 +48,4 @@ dependencies {
     implementation("com.google.firebase:firebase-database:20.3.0")
     implementation("com.google.android.material:material:1.11.0")
     implementation("com.google.firebase:firebase-messaging:23.4.0")
-
-    implementation("com.google.android.gms:play-services-location:21.2.0")
 }

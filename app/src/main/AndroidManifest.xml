@@ -17,6 +17,10 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.SHRAMIKCONNECT">
+        
+        <activity
+            android:name=".WorkerProfileActivity"
+            android:exported="false" />
         <activity
             android:name=".WorkerChatsActivity"
             android:exported="false" />
