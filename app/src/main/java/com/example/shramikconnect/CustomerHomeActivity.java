@@ -17,7 +17,6 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.*;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 public class CustomerHomeActivity extends AppCompatActivity {
 
@@ -26,7 +25,8 @@ public class CustomerHomeActivity extends AppCompatActivity {
     Button btnSearch, btnViewMyJobs;
     ListView listWorkers;
 
-    ArrayList<String> workerList;
+    ArrayList<String> workerNames;
+    ArrayList<String> workerIds;
     ArrayAdapter<String> adapter;
 
     DatabaseReference usersRef, jobsRef, notificationsRef;
@@ -53,17 +53,13 @@ public class CustomerHomeActivity extends AppCompatActivity {
             listenForNotifications();
         }
 
-        workerList = new ArrayList<>();
-        adapter = new ArrayAdapter<>(this,
-                android.R.layout.simple_list_item_1, workerList);
+        workerNames = new ArrayList<>();
+        workerIds = new ArrayList<>();
+        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, workerNames);
 
         listWorkers.setAdapter(adapter);
 
-        ArrayAdapter<String> skillAdapter =
-                new ArrayAdapter<>(this,
-                        android.R.layout.simple_spinner_dropdown_item,
-                        skills);
-
+        ArrayAdapter<String> skillAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, skills);
         spinnerSkills.setAdapter(skillAdapter);
 
         btnSearch.setOnClickListener(v -> searchWorkers());
@@ -73,13 +69,10 @@ public class CustomerHomeActivity extends AppCompatActivity {
         });
 
         listWorkers.setOnItemClickListener((parent, view, position, id) -> {
-            String data = workerList.get(position);
-            try {
-                String workerId = data.split(" :: ")[0];
-                showBookingDialog(workerId);
-            } catch (Exception e) {
-                Log.e(TAG, "Error parsing worker item data", e);
-            }
+            String selectedWorkerId = workerIds.get(position);
+            Intent intent = new Intent(CustomerHomeActivity.this, WorkerProfileActivity.class);
+            intent.putExtra("workerId", selectedWorkerId);
+            startActivity(intent);
         });
     }
 
@@ -94,13 +87,10 @@ public class CustomerHomeActivity extends AppCompatActivity {
                         String title = ds.child("title").getValue(String.class);
                         String message = ds.child("message").getValue(String.class);
                         showLocalNotification(title, message);
-
-                        // Mark as read
                         ds.getRef().child("read").setValue(true);
                     }
                 }
             }
-
             @Override
             public void onCancelled(@NonNull DatabaseError error) {}
         });
@@ -111,7 +101,7 @@ public class CustomerHomeActivity extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(channelId, "Customer Notifications", NotificationManager.IMPORTANCE_HIGH);
             NotificationManager manager = getSystemService(NotificationManager.class);
-            manager.createNotificationChannel(channel);
+            if (manager != null) manager.createNotificationChannel(channel);
         }
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, channelId)
@@ -120,7 +110,11 @@ public class CustomerHomeActivity extends AppCompatActivity {
                 .setContentText(message)
                 .setPriority(NotificationCompat.PRIORITY_HIGH);
 
-        NotificationManagerCompat.from(this).notify((int) System.currentTimeMillis(), builder.build());
+        try {
+            NotificationManagerCompat.from(this).notify((int) System.currentTimeMillis(), builder.build());
+        } catch (SecurityException e) {
+            Log.e(TAG, "Notification permission missing", e);
+        }
     }
 
     private void searchWorkers() {
@@ -128,47 +122,24 @@ public class CustomerHomeActivity extends AppCompatActivity {
         usersRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                workerList.clear();
+                workerNames.clear();
+                workerIds.clear();
                 for(DataSnapshot ds : snapshot.getChildren()) {
-                    if ("Worker".equals(ds.child("role").getValue(String.class)) && 
-                        selectedSkill.equalsIgnoreCase(ds.child("profession").getValue(String.class))) {
-                            String workerId = ds.getKey();
-                            String name = ds.child("name").getValue(String.class);
-                            workerList.add(workerId + " :: " + name);
+                    String role = ds.child("role").getValue(String.class);
+                    String profession = ds.child("profession").getValue(String.class);
+                    if ("Worker".equals(role) && selectedSkill.equalsIgnoreCase(profession)) {
+                        String name = ds.child("name").getValue(String.class);
+                        workerNames.add(name != null ? name : "Unknown");
+                        workerIds.add(ds.getKey());
                     }
                 }
                 adapter.notifyDataSetChanged();
+                if (workerNames.isEmpty()) {
+                    Toast.makeText(CustomerHomeActivity.this, "No workers found", Toast.LENGTH_SHORT).show();
+                }
             }
             @Override
             public void onCancelled(@NonNull DatabaseError error) {}
         });
-    }
-
-    private void showBookingDialog(String workerId) {
-        final EditText input = new EditText(this);
-        input.setHint("Enter Booking Amount");
-        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
-
-        new android.app.AlertDialog.Builder(this)
-                .setTitle("Book Worker")
-                .setView(input)
-                .setPositiveButton("Confirm", (dialog, which) -> {
-                    String amountStr = input.getText().toString();
-                    if(!amountStr.isEmpty()) {
-                        String jobId = jobsRef.push().getKey();
-                        if (jobId == null) return;
-                        HashMap<String, Object> jobMap = new HashMap<>();
-                        jobMap.put("workerId", workerId);
-                        jobMap.put("customerId", customerId);
-                        jobMap.put("skill", spinnerSkills.getSelectedItem().toString());
-                        jobMap.put("amount", amountStr);
-                        jobMap.put("status", "pending");
-                        jobMap.put("timestamp", ServerValue.TIMESTAMP);
-                        jobsRef.child(jobId).setValue(jobMap);
-                        Toast.makeText(this, "Job Requested Successfully", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
     }
 }
