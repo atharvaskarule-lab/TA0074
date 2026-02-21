@@ -78,7 +78,7 @@ public class SignupActivity extends AppCompatActivity {
 
         RadioButton selectedRole = findViewById(selectedRoleId);
         String roleText = selectedRole.getText().toString().trim();
-        
+
         final String role = roleText.contains("Worker") ? "Worker" : "Customer";
 
         btnRegister.setEnabled(false);
@@ -93,21 +93,21 @@ public class SignupActivity extends AppCompatActivity {
                         // Registration success, update UI with the signed-in user's information
                         Log.d(TAG, "createUserWithEmail:success");
                         String userId = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
-                        
-                        saveUserToDatabase(userId, name, phone, role, password);
+
+                        saveUserToDatabase(userId, name, phone, role);
                     } else {
                         // If sign in fails, display a message to the user.
                         Log.w(TAG, "createUserWithEmail:failure", task.getException());
-                        Toast.makeText(SignupActivity.this, "Authentication failed: " + 
-                                Objects.requireNonNull(task.getException()).getMessage(),
+                        Toast.makeText(SignupActivity.this, "Authentication failed: " +
+                                        Objects.requireNonNull(task.getException()).getMessage(),
                                 Toast.LENGTH_SHORT).show();
                         btnRegister.setEnabled(true);
                     }
                 });
     }
 
-    private void saveUserToDatabase(String userId, String name, String phone, String role, String password) {
-        User user = new User(name, phone, role, password);
+    private void saveUserToDatabase(String userId, String name, String phone, String role) {
+        User user = new User(userId, name, phone, role);
 
         databaseReference.child(userId).setValue(user)
                 .addOnCompleteListener(task -> {

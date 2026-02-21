@@ -45,7 +45,7 @@
                 android:inputType="phone"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Role Selection -->
+        <!-- Role -->
         <RadioGroup
             android:id="@+id/roleGroup"
             android:layout_width="match_parent"
@@ -53,16 +53,16 @@
             android:layout_marginTop="20dp">
 
             <RadioButton
-                android:id="@+id/rbCustomer"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Register as Customer"/>
-
-            <RadioButton
                 android:id="@+id/rbWorker"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Register as Worker"/>
+                android:text="Worker"/>
+
+            <RadioButton
+                android:id="@+id/rbCustomer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Customer"/>
         </RadioGroup>
 
         <!-- Password -->
@@ -80,8 +80,8 @@
                 android:inputType="textPassword"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Button -->
-        <Button
+        <!-- Register Button -->
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnRegister"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -89,5 +89,4 @@
             android:layout_marginTop="24dp"/>
 
     </LinearLayout>
-
 </ScrollView>

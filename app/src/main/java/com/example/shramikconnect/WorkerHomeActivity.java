@@ -16,7 +16,7 @@ public class WorkerHomeActivity extends AppCompatActivity {
     private static final String TAG = "WorkerHomeActivity";
     TextView tvWelcome, tvRating, tvEarnings;
     Switch switchAvailability;
-    Button btnViewJobs, btnEditProfile, btnLogout;
+    Button btnViewJobs, btnEditProfile, btnLogout, btnSos, btnViewChats;
 
     FirebaseAuth mAuth;
     DatabaseReference databaseReference;
@@ -34,6 +34,8 @@ public class WorkerHomeActivity extends AppCompatActivity {
         btnViewJobs = findViewById(R.id.btnViewJobs);
         btnEditProfile = findViewById(R.id.btnEditProfile);
         btnLogout = findViewById(R.id.btnLogout);
+        btnSos = findViewById(R.id.btnSos);
+        btnViewChats = findViewById(R.id.btnViewChats);
 
         mAuth = FirebaseAuth.getInstance();
         FirebaseUser currentUser = mAuth.getCurrentUser();
@@ -69,6 +71,12 @@ public class WorkerHomeActivity extends AppCompatActivity {
 
         btnViewJobs.setOnClickListener(v ->
                 startActivity(new Intent(this, WorkerJobsActivity.class)));
+
+        btnSos.setOnClickListener(v -> 
+                startActivity(new Intent(this, SosActivity.class)));
+
+        btnViewChats.setOnClickListener(v -> 
+                startActivity(new Intent(this, WorkerChatsActivity.class)));
     }
 
     private void loadWorkerData() {

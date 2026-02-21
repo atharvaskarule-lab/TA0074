@@ -2,16 +2,15 @@ package com.example.shramikconnect;
 
 public class User {
 
-    public String name, phone, role, password;
+    public String uid, name, phone, role;
 
     public User() {
-        // Required empty constructor for Firebase
     }
 
-    public User(String name, String phone, String role, String password) {
+    public User(String uid, String name, String phone, String role) {
+        this.uid = uid;
         this.name = name;
         this.phone = phone;
         this.role = role;
-        this.password = password;
     }
 }

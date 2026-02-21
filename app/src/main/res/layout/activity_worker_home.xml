@@ -71,9 +71,27 @@
             android:layout_height="50dp"/>
 
         <Button
+            android:id="@+id/btnViewChats"
+            android:text="View Chats"
+            android:backgroundTint="#1E3A8A"
+            android:textColor="@android:color/white"
+            android:layout_marginBottom="12dp"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"/>
+
+        <Button
             android:id="@+id/btnEditProfile"
             android:text="Edit Profile"
             android:backgroundTint="#4CAF50"
+            android:textColor="@android:color/white"
+            android:layout_marginBottom="12dp"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"/>
+
+        <Button
+            android:id="@+id/btnSos"
+            android:text="SOS"
+            android:backgroundTint="#D32F2F"
             android:textColor="@android:color/white"
             android:layout_marginBottom="12dp"
             android:layout_width="match_parent"

@@ -3,6 +3,10 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.CALL_PHONE" />
 
     <application
         android:allowBackup="true"
@@ -13,6 +17,18 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.SHRAMIKCONNECT">
+        <activity
+            android:name=".WorkerChatsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".RateWorkerActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ChatActivity"
+            android:exported="false" />
+        <activity
+            android:name=".SosActivity"
+            android:exported="false" />
         <activity
             android:name=".CustomerDashboardActivity"
             android:exported="false" />
@@ -33,7 +49,7 @@
             android:name=".CustomerJobsActivity"
             android:exported="false" />
         <activity
-            android:name=".CustomerHomeActivity"
+            android:name="com.example.shramikconnect.CustomerHomeActivity"
             android:exported="false" />
         <activity
             android:name=".WorkerJobsActivity"
