@@ -5,7 +5,7 @@ public class User {
     public String name, phone, role, password;
 
     public User() {
-        // Required empty constructor
+        // Required empty constructor for Firebase
     }
 
     public User(String name, String phone, String role, String password) {

@@ -11,10 +11,13 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.SHRAMIKCONNECT">
+        <uses-permission android:name="android.permission.INTERNET"/>
+        <activity
+            android:name=".CustomerDashboardActivity"
+            android:exported="false" />
         <activity
             android:name=".WorkerDashboardActivity"
-            android:exported="false" />
-        <!-- Firebase Messaging Service -->
+            android:exported="false" /> <!-- Firebase Messaging Service -->
         <service
             android:name=".MyFirebaseMessagingService"
             android:exported="false">
